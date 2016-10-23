@@ -11,8 +11,6 @@ reaction to message on Slack channel, bot add to JIRA/Redmine issue.
     # node slackjira_bot.js
 3. invite bot to slack channel
 
-# setup
-
 ## JIRA
 
 get slack api token
