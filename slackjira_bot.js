@@ -21,41 +21,13 @@
 	v0.1	first-version.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-/////// Configurations
-var config = {
-	slack: {
-		url: 'https://?????.slack.com/',
-		token: 'aaaa-bbbb-cccc',
-		taskmark: 'white_check_mark',
-	},
-
-	jira: {
-		enable: true,
-		url: 'https://?????.atlassian.net/',
-		projectkey: 'xxx',
-		issuetype: 'Bug',
-		user: 'xxx@yyyy',
-		password: "password",
-	},
-
-	redmine: {
-		enable: false,
-		key: 'aaaabbbbcccc',
-		host: 'http://xxx.xxx.xxx.xxx/',
-		project: 'projectid_or_name',
-		tracker: 'task',
-	},
-}
-
-
-
-
 var Botkit = require('./lib/Botkit.js');
 var os = require('os');
 var sys = require('util')
 var async = require('async');
 var request = require('request')
 var jsonQuery = require('json-query')
+var config = require('./configuration.js')
 
 ////////////////////////////////////////////////////////////////////////////////
 //	Slackbot
@@ -66,28 +38,38 @@ var controller = Botkit.slackbot({
 
 var bot = controller.spawn({
     token: config.slack.token
-}).startRTM();
+}).startRTM(function (err, bot, payload) {
+    if (err) {
+      throw new Error(err)
+    }
+
+    console.log('Connected to Slack RTM')
+});
 
 controller.on('reaction_added', function(bot, event) {
 
-	if(event.reaction === config.slack.taskmark ) {
+	if(event.reaction === config.slack.taskmark) {
 
 		buildTaskinfo(event.item_user, event.item.channel, event.item.ts, function (notify) {
+			try {
 
-			bot.say({ text: notify, channel: event.item.channel });
+				bot.say({ text: notify, channel: event.item.channel });
 
-			bot.api.reactions.add({
-		        timestamp: event.item.ts,
-		        channel: event.item.channel,
-		        name: 'robot_face',
-		    }, function(err, res) {
-		        if (err) {
-		            bot.botkit.log('Failed to add emoji reaction :(', err);
-		        }
-		    });
+				bot.api.reactions.add({
+			        timestamp: event.item.ts,
+			        channel: event.item.channel,
+			        name: 'robot_face',
+			    }, function(err, res) {
+			        if (err) {
+			            bot.botkit.log('Failed to add emoji reaction :(', err);
+			        }
+			    });
+
+			} catch(e) {
+				console.log(e);
+			}
 
 		});
-
 	}
 
 });
@@ -120,12 +102,11 @@ function buildTaskinfo(userid, channelid, messagets, callback) {
 					callback(err, null);
 					return;
 				}
-				//console.log("username=" + username)
+
 				callback(null, username)
 			})
 		},
 		function(callback) {
-
 			async.waterfall([
 
 				// channelId -> channelName
@@ -147,12 +128,11 @@ function buildTaskinfo(userid, channelid, messagets, callback) {
 					callback(err, null);
 					return;
 				}
-				//console.log("channelname=" + channelname)
+
 				callback(null, channelname)
 			})
 		},
 		function(callback) {
-
 			async.waterfall([
 
 				// get message
@@ -183,7 +163,6 @@ function buildTaskinfo(userid, channelid, messagets, callback) {
 					callback(err, null);
 					return;
 				}
-				//console.log("message=" + message)
 				callback(null, message)
 			})
 		}
@@ -258,6 +237,7 @@ function addJiraTask(projectKey, summary, description, issuetype, channelid, mes
 	request(options, function (error, response, body) {
 	  if (error && response.statusCode !== 200) {
 	    console.log('Error when contacting')
+			return;
 	  }
 
 		var notify = '# JIRA ticket: ' + body.key + ' ' + summary + '\n# ' + config.jira.url + 'browse/' + body.key;
@@ -300,10 +280,10 @@ function addRedmineTask(projectId, trackerId, subject, description, callback) {
 		json: data
 	}
 	request(options, function (error, response, body) {
-		console.log(response)
 
 	  if (error && response.statusCode !== 200) {
 	    console.log('Error when contacting')
+			return;
 	  }
 
 		var notify = '# Redmine ticket: ' + body.issue.id + ' ' + subject + '\n# ' + config.redmine.host + 'issues/' + body.issue.id;
