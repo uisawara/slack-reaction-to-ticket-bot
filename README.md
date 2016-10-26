@@ -17,6 +17,7 @@ reaction to message on Slack channel, bot add to JIRA/Redmine issue.
     # setup slackjira_bot
     git clone git@github.com:howdyai/botkit.git
     git clone https://github.com/uisawara/slackjira_bot.js.git
+    cp configuration.js.sample configuration.js
     # edit and setup configuration.js
 
     # boot slackjira_bot
